@@ -30,20 +30,12 @@ class CVECrawler:
                 year = splitted_content[0]
                 index = splitted_content[1]
                 self.download_data(int(year), int(index))
-            except FileNotFoundError:
+            except:
                 self.download_data()
             time.sleep(self.update_interval)
 
-    def is_new_instance(self):
-        if not self.retrieve_years_folders():
-            return True
-        return False
-
-    def retrieve_years_folders(self):
-        return [folder for folder in os.listdir(self.path_storage) if
-                os.path.isdir(os.path.join(self.path_storage, folder)) and not folder.startswith('.')]
-
     def download_data(self, year_from=1999, cve_from=1):
+        retry_attempt = 0
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(cve_from, 60000):
                 with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
@@ -57,7 +49,8 @@ class CVECrawler:
                     elif response.status_code == 404:
                         logging.info(f'{url.split("/")[-1]} does not exists, error {response.status_code}')
                     elif response.status_code == 429:
-                        time.sleep(self.retry_interval)
+                        time.sleep(self.retry_interval * retry_attempt)
+                        retry_attempt *= 1.5
                     else:
                         logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
                 except:
