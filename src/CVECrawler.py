@@ -9,7 +9,7 @@ import requests
 
 class CVECrawler:
     def __init__(self,
-                 path_storage='/Users/dravalico/PycharmProjects/cve-crawler/CVE',
+                 path_storage='/usr/src/data',
                  request_timeout=10,
                  update_interval=3600,
                  retry_interval=60):
