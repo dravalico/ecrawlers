@@ -10,7 +10,7 @@ import logging
 class CVECrawler:
     def __init__(self,
                  path_storage='/Users/dravalico/PycharmProjects/CVECrawler/CVE',
-                 update_interval=0,
+                 update_interval=3600,
                  retry_interval=60):
         self.path_storage = path_storage
         self.update_interval = update_interval
@@ -22,10 +22,16 @@ class CVECrawler:
     def run(self):
         if not os.path.exists(self.path_storage):
             os.makedirs(self.path_storage)
-        if self.is_new_instance():
-            self.download_all()
         while True:
-            self.download_new_data()
+            try:
+                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
+                    content = file.read()
+                splitted_content = content.split(',')
+                year = splitted_content[0]
+                index = splitted_content[1]
+                self.download_data(int(year), int(index))
+            except FileNotFoundError:
+                self.download_data()
             time.sleep(self.update_interval)
 
     def is_new_instance(self):
@@ -37,9 +43,11 @@ class CVECrawler:
         return [folder for folder in os.listdir(self.path_storage) if
                 os.path.isdir(os.path.join(self.path_storage, folder)) and not folder.startswith('.')]
 
-    def download_all(self, year_from=1999):
+    def download_data(self, year_from=1999, cve_from=1):
         for year in range(year_from, int(datetime.date.today().year) + 1):
-            for i in range(553, 60000):
+            for i in range(cve_from, 60000):
+                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
+                    file.write(f'{year},{i}')
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
                 try:
                     response = requests.get(url)
@@ -54,9 +62,6 @@ class CVECrawler:
                         logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
                 except:
                     logging.exception(f'Error for {url.split("/")[-1]} during GET')
-
-    def download_new_data(self):
-        pass
 
     def save_data(self, json_data):
         date = json_data['cveMetadata']['dateReserved']
@@ -73,19 +78,3 @@ class CVECrawler:
             os.makedirs(month_path)
         with open(os.path.join(month_path, f'{year}_{month}_{day}.jsonl'), 'a', encoding='utf-8') as file:
             file.write(json.dumps(json_data) + '\n')
-
-    @staticmethod
-    def retrieve_last_CVE_ID_online():
-        endpoint_cve = 'https://services.nvd.nist.gov/rest/json/cves/1.0'
-        response = requests.get(endpoint_cve)
-        if response.status_code == 200:
-            data = response.json()
-            cve_items = data['result']['CVE_Items']
-            cve_id_list = []
-            if cve_items:
-                for e in cve_items:
-                    cve_id_list.append(int(e['cve']['CVE_data_meta']['ID'].split('-')[2]))
-            return max(cve_id_list)
-
-    def retrieve_last_CVE_ID_local(self):
-        pass
