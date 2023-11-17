@@ -25,22 +25,21 @@ class CVECrawler:
         if not os.path.exists(self.path_storage):
             os.makedirs(self.path_storage)
         while True:
-            # try:
-            #     with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
-            #         content = file.read()
-            #     split_content = content.split(',')
-            #     year = split_content[0]
-            #     index = split_content[1]
-            #     self.download_data(int(year), int(index))
-            # except FileNotFoundError:
-            self.download_data()
+            try:
+                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
+                    content = file.read()
+                split_content = content.split(',')
+                year = split_content[0]
+                index = split_content[1]
+                self.download_data(int(year), int(index))
+            except FileNotFoundError:
+                self.download_data()
             time.sleep(self.update_interval)
 
     def download_data(self, year_from=1999, cve_from=1):
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(cve_from, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
-                print("B")
                 try:
                     response = requests.get(url, timeout=self.request_timeout)
                     if response.status_code == 200:
