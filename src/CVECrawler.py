@@ -5,7 +5,6 @@ import logging
 import os
 import time
 import requests
-import urllib.request
 
 
 class CVECrawler:
@@ -76,11 +75,16 @@ class CVECrawler:
 
     @staticmethod
     def add_references_to_json(response_json):
-        references = response_json['containers']['cna']['references']
+        references = []
+        for ref in response_json['containers']['cna']['references']:
+            references.append(ref['url'])
         read_references = []
         for ref_url in references:
-            opener = urllib.request.FancyURLopener({})
-            opened_url = opener.open(ref_url)
-            read_references.append(opened_url.read())
+            response = requests.get(ref_url)
+            if response.status_code == 200:
+                read_references.append((ref_url, response.text))
+            else:
+                read_references.append((ref_url, response.status_code))
         response_json['added_references'] = read_references
+        print(read_references)
         return response_json
