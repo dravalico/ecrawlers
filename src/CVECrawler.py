@@ -38,8 +38,6 @@ class CVECrawler:
         retry_attempt = 0
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(cve_from, 60000):
-                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
-                    file.write(f'{year},{i}')
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
                 try:
                     response = requests.get(url)
@@ -53,6 +51,8 @@ class CVECrawler:
                         retry_attempt *= 1.5
                     else:
                         logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
+                    with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
+                        file.write(f'{year},{i + 1}')
                 except:
                     logging.exception(f'Error for {url.split("/")[-1]} during GET')
 
