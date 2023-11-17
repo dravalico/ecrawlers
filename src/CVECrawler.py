@@ -10,9 +10,11 @@ import requests
 class CVECrawler:
     def __init__(self,
                  path_storage='/Users/dravalico/PycharmProjects/cve-crawler/CVE',
+                 request_timeout=10,
                  update_interval=3600,
                  retry_interval=60):
         self.path_storage = path_storage
+        self.request_timeout = request_timeout
         self.update_interval = update_interval
         self.retry_interval = retry_interval
         self.endpoint_cve = 'https://cveawg.mitre.org/api/cve/CVE-'
@@ -39,7 +41,7 @@ class CVECrawler:
             for i in range(cve_from, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
                 try:
-                    response = requests.get(url)
+                    response = requests.get(url, timeout=self.request_timeout)
                     if response.status_code == 200:
                         response_json = response.json()
                         complete_json = self.add_references_to_json(response_json)
@@ -73,14 +75,13 @@ class CVECrawler:
         with open(os.path.join(month_path, f'{year}_{month}_{day}.jsonl'), 'a', encoding='utf-8') as file:
             file.write(json.dumps(json_data) + '\n')
 
-    @staticmethod
-    def add_references_to_json(response_json):
+    def add_references_to_json(self, response_json):
         references = []
         for ref in response_json['containers']['cna']['references']:
             references.append(ref['url'])
         read_references = []
         for ref_url in references:
-            response = requests.get(ref_url)
+            response = requests.get(ref_url, timeout=self.request_timeout)
             if response.status_code == 200:
                 read_references.append((ref_url, response.text))
             else:

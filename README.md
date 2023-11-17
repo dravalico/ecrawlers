@@ -14,7 +14,8 @@ downloaded one. If all CVEs are downloaded completely, the script will download 
 seconds (default is 3600 seconds).
 
 it is also possible to configure the `path_storage` path (default is `/usr/src/data`) in which to save the downloaded
-files and the `retry_interval` time (default is 60 seconds), in case the request limit is reached.
+files, the timeout `request_timeout` for a single request (default is 10 seconds) and the `retry_interval` time (default
+is 60 seconds), in case the rate limit is reached.
 
 ## Usage
 
