@@ -9,21 +9,19 @@ import logging
 
 class CVECrawler:
     def __init__(self,
-                 folder_path_for_data='/Users/dravalico/PycharmProjects/CVECrawler/CVE',
+                 path_storage='/Users/dravalico/PycharmProjects/CVECrawler/CVE',
                  update_interval=0,
-                 retry_interval=60,
-                 attempts_per_cve=10):
-        self.folder_path_for_data = folder_path_for_data
+                 retry_interval=60):
+        self.path_storage = path_storage
         self.update_interval = update_interval
         self.retry_interval = retry_interval
-        self.attempts_per_cve = attempts_per_cve
         self.endpoint_cve = 'https://cveawg.mitre.org/api/cve/CVE-'
         log_format = f'[%(levelname)s at %(asctime)s] %(message)s'
         logging.basicConfig(level=logging.INFO, format=log_format, datefmt="%Y-%m-%d %H:%M:%S")
 
     def run(self):
-        if not os.path.exists(self.folder_path_for_data):
-            os.makedirs(self.folder_path_for_data)
+        if not os.path.exists(self.path_storage):
+            os.makedirs(self.path_storage)
         if self.is_new_instance():
             self.download_all()
         while True:
@@ -36,28 +34,24 @@ class CVECrawler:
         return False
 
     def retrieve_years_folders(self):
-        return [folder for folder in os.listdir(self.folder_path_for_data) if
-                os.path.isdir(os.path.join(self.folder_path_for_data, folder)) and not folder.startswith('.')]
+        return [folder for folder in os.listdir(self.path_storage) if
+                os.path.isdir(os.path.join(self.path_storage, folder)) and not folder.startswith('.')]
 
     def download_all(self, year_from=1999):
-        attempts = 0
         for year in range(year_from, int(datetime.date.today().year) + 1):
-            for i in range(1, 60000):
+            for i in range(553, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
                 try:
                     response = requests.get(url)
                     if response.status_code == 200:
                         self.save_data(response.json())
                         logging.info(f'Data obtained for {url.split("/")[-1]}')
+                    elif response.status_code == 404:
+                        logging.info(f'{url.split("/")[-1]} does not exists, error {response.status_code}')
                     elif response.status_code == 429:
                         time.sleep(self.retry_interval)
                     else:
-                        if attempts != self.attempts_per_cve:
-                            i -= 1
-                            attempts += 1
-                        else:
-                            attempts = 0
-                            logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
+                        logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
                 except:
                     logging.exception(f'Error for {url.split("/")[-1]} during GET')
 
@@ -71,7 +65,7 @@ class CVECrawler:
         month = splitted_date[1]
         month_full = month + "-" + calendar.month_name[int(month.lstrip('0'))]
         day = splitted_date[2].split('T')[0]
-        year_path = os.path.join(self.folder_path_for_data, year)
+        year_path = os.path.join(self.path_storage, year)
         if not os.path.exists(year_path):
             os.makedirs(year_path)
         month_path = os.path.join(year_path, month_full[:6])
