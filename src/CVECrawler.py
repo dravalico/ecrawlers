@@ -25,21 +25,22 @@ class CVECrawler:
         if not os.path.exists(self.path_storage):
             os.makedirs(self.path_storage)
         while True:
-            try:
-                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
-                    content = file.read()
-                split_content = content.split(',')
-                year = split_content[0]
-                index = split_content[1]
-                self.download_data(int(year), int(index))
-            except FileNotFoundError:
-                self.download_data()
+            # try:
+            #     with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
+            #         content = file.read()
+            #     split_content = content.split(',')
+            #     year = split_content[0]
+            #     index = split_content[1]
+            #     self.download_data(int(year), int(index))
+            # except FileNotFoundError:
+            self.download_data()
             time.sleep(self.update_interval)
 
     def download_data(self, year_from=1999, cve_from=1):
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(cve_from, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
+                print("B")
                 try:
                     response = requests.get(url, timeout=self.request_timeout)
                     if response.status_code == 200:
@@ -55,9 +56,8 @@ class CVECrawler:
                         logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
                 except:
                     logging.exception(f'Error for {url.split("/")[-1]} during GET')
-                finally:
-                    with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
-                        file.write(f'{year},{i + 1}')
+                with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
+                    file.write(f'{year},{i + 1}')
 
     def save_data(self, json_data):
         date = json_data['cveMetadata']['dateReserved']
@@ -81,10 +81,13 @@ class CVECrawler:
             references.append(ref['url'])
         read_references = []
         for ref_url in references:
-            response = requests.get(ref_url, timeout=self.request_timeout)
-            if response.status_code == 200:
-                read_references.append((ref_url, response.text))
-            else:
-                read_references.append((ref_url, response.status_code))
+            try:
+                response = requests.get(ref_url, timeout=self.request_timeout)
+                if response.status_code == 200:
+                    read_references.append((ref_url, response.text))
+                else:
+                    read_references.append((ref_url, response.status_code))
+            except:
+                read_references.append((ref_url, "Error with the request"))
         response_json['added_references'] = read_references
         return response_json
