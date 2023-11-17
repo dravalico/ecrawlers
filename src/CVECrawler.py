@@ -4,14 +4,22 @@ import time
 import datetime
 import json
 import calendar
+import logging
 
 
 class CVECrawler:
-    def __init__(self, folder_path_for_data='/Users/dravalico/Desktop/CVE', update_interval=0, retry_interval=60):
+    def __init__(self,
+                 folder_path_for_data='/Users/dravalico/PycharmProjects/CVECrawler/CVE',
+                 update_interval=0,
+                 retry_interval=60,
+                 attempts_per_cve=10):
         self.folder_path_for_data = folder_path_for_data
         self.update_interval = update_interval
         self.retry_interval = retry_interval
+        self.attempts_per_cve = attempts_per_cve
         self.endpoint_cve = 'https://cveawg.mitre.org/api/cve/CVE-'
+        log_format = f'[%(levelname)s at %(asctime)s] %(message)s'
+        logging.basicConfig(level=logging.INFO, format=log_format, datefmt="%Y-%m-%d %H:%M:%S")
 
     def run(self):
         if not os.path.exists(self.folder_path_for_data):
@@ -32,14 +40,26 @@ class CVECrawler:
                 os.path.isdir(os.path.join(self.folder_path_for_data, folder)) and not folder.startswith('.')]
 
     def download_all(self, year_from=1999):
+        attempts = 0
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(1, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
-                response = requests.get(url)
-                if response.status_code == 200:
-                    self.save_data(response.json())
-                elif response.status_code == 429:
-                    time.sleep(self.retry_interval)
+                try:
+                    response = requests.get(url)
+                    if response.status_code == 200:
+                        self.save_data(response.json())
+                        logging.info(f'Data obtained for {url.split("/")[-1]}')
+                    elif response.status_code == 429:
+                        time.sleep(self.retry_interval)
+                    else:
+                        if attempts != self.attempts_per_cve:
+                            i -= 1
+                            attempts += 1
+                        else:
+                            attempts = 0
+                            logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
+                except:
+                    logging.exception(f'Error for {url.split("/")[-1]} during GET')
 
     def download_new_data(self):
         pass
@@ -62,16 +82,16 @@ class CVECrawler:
 
     @staticmethod
     def retrieve_last_CVE_ID_online():
-        endpoint_CVEs = 'https://services.nvd.nist.gov/rest/json/cves/1.0'
-        response = requests.get(endpoint_CVEs)
+        endpoint_cve = 'https://services.nvd.nist.gov/rest/json/cves/1.0'
+        response = requests.get(endpoint_cve)
         if response.status_code == 200:
             data = response.json()
-            CVE_items = data['result']['CVE_Items']
-            CVE_ID_list = []
-            if CVE_items:
-                for e in CVE_items:
-                    CVE_ID_list.append(int(e['cve']['CVE_data_meta']['ID'].split('-')[2]))
-            return max(CVE_ID_list)
+            cve_items = data['result']['CVE_Items']
+            cve_id_list = []
+            if cve_items:
+                for e in cve_items:
+                    cve_id_list.append(int(e['cve']['CVE_data_meta']['ID'].split('-')[2]))
+            return max(cve_id_list)
 
     def retrieve_last_CVE_ID_local(self):
         pass
