@@ -86,5 +86,4 @@ class CVECrawler:
             else:
                 read_references.append((ref_url, response.status_code))
         response_json['added_references'] = read_references
-        print(read_references)
         return response_json
