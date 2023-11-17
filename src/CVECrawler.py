@@ -5,11 +5,12 @@ import logging
 import os
 import time
 import requests
+import urllib.request
 
 
 class CVECrawler:
     def __init__(self,
-                 path_storage='/usr/src/data/',
+                 path_storage='/Users/dravalico/PycharmProjects/cve-crawler/CVE',
                  update_interval=3600,
                  retry_interval=60):
         self.path_storage = path_storage
@@ -26,43 +27,44 @@ class CVECrawler:
             try:
                 with open(os.path.join(self.path_storage, '.last_cve.txt'), 'r', encoding='utf-8') as file:
                     content = file.read()
-                splitted_content = content.split(',')
-                year = splitted_content[0]
-                index = splitted_content[1]
+                split_content = content.split(',')
+                year = split_content[0]
+                index = split_content[1]
                 self.download_data(int(year), int(index))
-            except:
+            except FileNotFoundError:
                 self.download_data()
             time.sleep(self.update_interval)
 
     def download_data(self, year_from=1999, cve_from=1):
-        retry_attempt = 0
         for year in range(year_from, int(datetime.date.today().year) + 1):
             for i in range(cve_from, 60000):
                 url = self.endpoint_cve + str(year) + '-' + str(i).zfill(4)
                 try:
                     response = requests.get(url)
                     if response.status_code == 200:
-                        self.save_data(response.json())
+                        response_json = response.json()
+                        complete_json = self.add_references_to_json(response_json)
+                        self.save_data(complete_json)
                         logging.info(f'Data obtained for {url.split("/")[-1]}')
                     elif response.status_code == 404:
                         logging.info(f'{url.split("/")[-1]} does not exists, error {response.status_code}')
                     elif response.status_code == 429:
-                        time.sleep(self.retry_interval * retry_attempt)
-                        retry_attempt *= 1.5
+                        time.sleep(self.retry_interval)
                     else:
                         logging.warning(f'Cannot obtain data for {url.split("/")[-1]}')
-                    with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
-                        file.write(f'{year},{i + 1}')
                 except:
                     logging.exception(f'Error for {url.split("/")[-1]} during GET')
+                finally:
+                    with open(os.path.join(self.path_storage, '.last_cve.txt'), 'w', encoding='utf-8') as file:
+                        file.write(f'{year},{i + 1}')
 
     def save_data(self, json_data):
         date = json_data['cveMetadata']['dateReserved']
-        splitted_date = date.split('-')
-        year = splitted_date[0]
-        month = splitted_date[1]
+        split_date = date.split('-')
+        year = split_date[0]
+        month = split_date[1]
         month_full = month + "-" + calendar.month_name[int(month.lstrip('0'))]
-        day = splitted_date[2].split('T')[0]
+        day = split_date[2].split('T')[0]
         year_path = os.path.join(self.path_storage, year)
         if not os.path.exists(year_path):
             os.makedirs(year_path)
@@ -71,3 +73,14 @@ class CVECrawler:
             os.makedirs(month_path)
         with open(os.path.join(month_path, f'{year}_{month}_{day}.jsonl'), 'a', encoding='utf-8') as file:
             file.write(json.dumps(json_data) + '\n')
+
+    @staticmethod
+    def add_references_to_json(response_json):
+        references = response_json['containers']['cna']['references']
+        read_references = []
+        for ref_url in references:
+            opener = urllib.request.FancyURLopener({})
+            opened_url = opener.open(ref_url)
+            read_references.append(opened_url.read())
+        response_json['added_references'] = read_references
+        return response_json
