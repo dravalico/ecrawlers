@@ -18,8 +18,8 @@ files and the `retry_interval` time (default is 60 seconds), in case the request
 
 ## Usage
 
-Running without Docker can be done as a regular Python program (conda or venv). Simply install the requirements via pip
-install `requirements.txt`.
+Running without Docker can be done as a regular Python program (conda or venv). Simply install the requirements via `pip
+install requirements.txt`.
 
 Running via [Docker](https://www.docker.com/), however, obviously requires its installation. The build must then be
 performed via:
@@ -34,7 +34,10 @@ Subsequently, you can run the application via:
 docker run -v <local output directory>:/usr/src/data cve-crawler
 ```
 
-### Note about the output folder
+### Output folder
+
+The files are saved in the specified folder and are organized by year, month and then a jsonl file per day. The date
+refers to how much the CVE in question has been reserved.
 
 It should be noted that for correct execution, a (hidden) file is created and used, called `last_cve.txt`, in which the
 next CVE to be downloaded is saved. If this file is deleted, the download will start again from the beginning the next
