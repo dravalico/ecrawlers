@@ -2,3 +2,4 @@
 .idea
 venv
 cve-crawler/CVE
+exploitdb-crawler/data
