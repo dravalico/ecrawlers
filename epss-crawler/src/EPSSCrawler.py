@@ -57,7 +57,7 @@ class EPSSCrawler:
                 response = requests.get(url, timeout=self.request_timeout)
                 if response.status_code == 200:
                     logging.info(f'Data obtained for {date_from}')
-                    self.save_compressed_data(response.content)
+                    self.save_compressed_data(str(date_from), response.content)
                     logging.info(f'Data saved for {date_from}')
                     date_from += delta
                 else:
@@ -79,5 +79,5 @@ class EPSSCrawler:
     def retrieve_last_local_date(self):
         return None
 
-    def save_compressed_data(self, date, content):
+    def save_compressed_data(self, date_str, content):
         pass
