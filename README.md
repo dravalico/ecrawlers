@@ -3,7 +3,7 @@
 
 # crawlers
 
-This repository contains the Python code that creates three distinct crawlers. Both will be used for network searches
-analysis and IT security by the University of Trieste and the University of Turin.
+This repository contains the Python code that creates three distinct crawlers. All will be used for the analysis of
+network research and cybersecurity by the University of Trieste and the University of Turin.
 
 In each folder there is a README.md which describes the operation, parameters and data obtained from each crawler.
