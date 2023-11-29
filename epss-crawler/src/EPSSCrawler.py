@@ -7,7 +7,7 @@ import time
 
 class EPSSCrawler:
     def __init__(self,
-                 path_storage='/Users/dravalico/PycharmProjects/crawlers/epss-crawler/test',
+                 path_storage='/usr/src/data',
                  request_timeout=10,
                  interval_between_requests=2,
                  update_interval=86400,
