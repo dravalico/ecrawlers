@@ -9,7 +9,7 @@ class EPSSCrawler:
     def __init__(self,
                  path_storage='/Users/dravalico/PycharmProjects/crawlers/epss-crawler/test',
                  request_timeout=10,
-                 interval_between_requests=5,
+                 interval_between_requests=2,
                  update_interval=86400,
                  retry_interval=300,
                  retries_for_request=9):
@@ -33,7 +33,7 @@ class EPSSCrawler:
         time.sleep(self.update_interval)
         logging.info('Crawler woke up from stand-by mode')
         while True:
-            logging.info(f'Starting the cycle...')
+            logging.info(f'Maintaining...')
             self.download_or_maintain_data(maintain=True)
             logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
             time.sleep(self.update_interval)
@@ -46,7 +46,9 @@ class EPSSCrawler:
             date_from = datetime.date.today() - delta
         else:
             local_date = self.retrieve_last_local_date()
-            date_from = datetime.date(2021, 4, 14) if local_date is None else local_date
+            date_from = datetime.date(2021, 4, 14) if local_date is None else local_date.date()
+            date_from += delta
+        logging.info(f'Retrieving EPSS from {date_from}')
         date_to = datetime.date.today()
         actual_retries = 0
         while date_from < date_to:
@@ -64,9 +66,11 @@ class EPSSCrawler:
                     if response.status_code == 429 or response.status_code == 503:
                         logging.info(f'Going to sleep for {self.retry_interval} seconds due to too many requests')
                         time.sleep(self.retry_interval)
-                    actual_retries += 1
-                    if actual_retries == self.retries_for_request:
-                        actual_retries = 0
+                        actual_retries += 1
+                        if actual_retries == self.retries_for_request:
+                            actual_retries = 0
+                            date_from += delta
+                    else:
                         date_from += delta
             except Exception as e:
                 logging.exception(e)
@@ -76,7 +80,35 @@ class EPSSCrawler:
             logging.info('Crawler woke up')
 
     def retrieve_last_local_date(self):
-        return None
+        highest_date = None
+        for year in os.listdir(self.path_storage):
+            year_path = os.path.join(self.path_storage, year)
+            if os.path.isdir(year_path):
+                for month in os.listdir(year_path):
+                    month_path = os.path.join(year_path, month)
+                    if os.path.isdir(month_path):
+                        for file in os.listdir(month_path):
+                            if file.endswith(".csv.gz"):
+                                try:
+                                    file_date = datetime.datetime.strptime(file[:-7], "%Y-%m-%d")
+                                except ValueError:
+                                    continue
+                                if highest_date is None or file_date > highest_date:
+                                    highest_date = file_date
+        return highest_date
 
     def save_compressed_data(self, date_str, content):
-        pass
+        try:
+            date = date_str.split('-')
+            year = date[0]
+            month = date[1]
+            year_path = os.path.join(self.path_storage, year)
+            if not os.path.exists(year_path):
+                os.makedirs(year_path)
+            month_path = os.path.join(year_path, month)
+            if not os.path.exists(month_path):
+                os.makedirs(month_path)
+            with open(os.path.join(month_path, f'{date_str}.csv.gz'), 'wb') as file:
+                file.write(content)
+        except:
+            raise RuntimeError('Cannot save data')
