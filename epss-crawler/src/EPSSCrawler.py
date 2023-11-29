@@ -6,8 +6,6 @@ import time
 
 
 class EPSSCrawler:
-    ENDPOINT_EPSS = 'https://epss.cyentia.com/epss_scores-{}.csv.gz'
-
     def __init__(self,
                  path_storage='/Users/dravalico/PycharmProjects/crawlers/epss-crawler/test',
                  request_timeout=10,
@@ -42,6 +40,7 @@ class EPSSCrawler:
             logging.info('Crawler woke up from stand-by mode')
 
     def download_or_maintain_data(self, maintain=False):
+        endpoint_epss = 'https://epss.cyentia.com/epss_scores-{}.csv.gz'
         delta = datetime.timedelta(days=1)
         if maintain:
             date_from = datetime.date.today() - delta
@@ -51,7 +50,7 @@ class EPSSCrawler:
         date_to = datetime.date.today()
         actual_retries = 0
         while date_from < date_to:
-            url = self.ENDPOINT_EPSS.format(str(date_from))
+            url = endpoint_epss.format(str(date_from))
             logging.info(f'Request for {date_from}')
             try:
                 response = requests.get(url, timeout=self.request_timeout)
