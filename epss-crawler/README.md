@@ -5,7 +5,7 @@
 
 This is a web crawler that downloads all existing [EPSS from FIRST](https://www.first.org/). It can be used both as a
 normal Python program and via Docker, whose container can be obtained
-from [here](https://hub.docker.com/repository/docker/dravalico/epss-crawler/general).
+from [here](https://hub.docker.com/r/dravalico/epss-cralwer).
 
 ## Parameters
 
