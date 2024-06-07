@@ -20,10 +20,10 @@ class EPSSCrawler:
         self.retry_interval = retry_interval
         self.retries_for_request = retries_for_request
         log_format = f'[%(asctime)s] [%(levelname)s] %(message)s'
-        logging.basicConfig(level=logging.INFO, format=log_format, datefmt="%Y-%m-%d %H:%M:%S")
+        logging.basicConfig(level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S')
 
     def run(self):
-        logging.info("Crawler up")
+        logging.info('Crawler up')
         os.makedirs(self.storage_path, exist_ok=True)
         logging.info('Initialisation of the data population')
         self.download_or_maintain_data()
@@ -87,9 +87,9 @@ class EPSSCrawler:
                     month_path = os.path.join(year_path, month)
                     if os.path.isdir(month_path):
                         for file in os.listdir(month_path):
-                            if file.endswith(".csv.gz"):
+                            if file.endswith('.csv.gz'):
                                 try:
-                                    file_date = datetime.datetime.strptime(file[:-7], "%Y-%m-%d")
+                                    file_date = datetime.datetime.strptime(file[:-7], '%Y-%m-%d')
                                 except ValueError:
                                     continue
                                 if highest_date is None or file_date > highest_date:
@@ -109,3 +109,7 @@ class EPSSCrawler:
                 file.write(content)
         except:
             raise RuntimeError('Cannot save data')
+
+
+if __name__ == '__main__':
+    EPSSCrawler().run()
