@@ -7,13 +7,13 @@ import time
 
 class EPSSCrawler:
     def __init__(self,
-                 path_storage='/usr/src/data',
+                 storage_path='/usr/src/data',
                  request_timeout=10,
                  interval_between_requests=2,
                  update_interval=86400,
                  retry_interval=300,
                  retries_for_request=9):
-        self.path_storage = path_storage
+        self.storage_path = storage_path
         self.request_timeout = request_timeout
         self.interval_between_requests = interval_between_requests
         self.update_interval = update_interval
@@ -24,8 +24,7 @@ class EPSSCrawler:
 
     def run(self):
         logging.info("Crawler up")
-        if not os.path.exists(self.path_storage):
-            os.makedirs(self.path_storage)
+        os.makedirs(self.storage_path, exist_ok=True)
         logging.info('Initialisation of the data population')
         self.download_or_maintain_data()
         logging.info('Initialisation completed')
@@ -81,8 +80,8 @@ class EPSSCrawler:
 
     def retrieve_last_local_date(self):
         highest_date = None
-        for year in os.listdir(self.path_storage):
-            year_path = os.path.join(self.path_storage, year)
+        for year in os.listdir(self.storage_path):
+            year_path = os.path.join(self.storage_path, year)
             if os.path.isdir(year_path):
                 for month in os.listdir(year_path):
                     month_path = os.path.join(year_path, month)
@@ -102,12 +101,10 @@ class EPSSCrawler:
             date = date_str.split('-')
             year = date[0]
             month = date[1]
-            year_path = os.path.join(self.path_storage, year)
-            if not os.path.exists(year_path):
-                os.makedirs(year_path)
+            year_path = os.path.join(self.storage_path, year)
+            os.makedirs(year_path, exist_ok=True)
             month_path = os.path.join(year_path, month)
-            if not os.path.exists(month_path):
-                os.makedirs(month_path)
+            os.makedirs(month_path, exist_ok=True)
             with open(os.path.join(month_path, f'{date_str}.csv.gz'), 'wb') as file:
                 file.write(content)
         except:
