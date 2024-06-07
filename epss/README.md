@@ -1,7 +1,7 @@
 ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
-# epss-crawler
+# EPSS crawler
 
 This is a web crawler that downloads all existing [EPSS from FIRST](https://www.first.org/). It can be used both as a
 normal Python program and via Docker, whose container can be obtained
