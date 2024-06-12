@@ -9,7 +9,7 @@ class EPSSCrawler:
     def __init__(self,
                  storage_path='/usr/src/data',
                  request_timeout=60,
-                 interval_between_requests=2,
+                 interval_between_requests=6,
                  update_interval=86400,
                  retry_interval=300,
                  retries_for_request=9):

@@ -15,7 +15,7 @@ downloaded one. If all EPSSs are downloaded completely, the script will download
 seconds (default is 86400 seconds).
 
 it is also possible to configure the `path_storage` path (default is `/usr/src/data`) in which to save the downloaded
-files, the timeout `request_timeout` for a single request (default is 2 seconds), the `retry_interval` time (default
+files, the timeout `request_timeout` for a single request (default is 6 seconds), the `retry_interval` time (default
 is 300 seconds), in case the rate limit is reached and the `retries_for_request` (default is 9 but is from 0 to 9), for
 the request that raises some errors but maybe can be obtained.
 
