@@ -8,7 +8,7 @@ import time
 class EPSSCrawler:
     def __init__(self,
                  storage_path='/usr/src/data',
-                 request_timeout=10,
+                 request_timeout=60,
                  interval_between_requests=2,
                  update_interval=86400,
                  retry_interval=300,
@@ -19,6 +19,7 @@ class EPSSCrawler:
         self.update_interval = update_interval
         self.retry_interval = retry_interval
         self.retries_for_request = retries_for_request
+        self.MISSING_DATES = 'missing_dates.txt'
         log_format = f'[%(asctime)s] [%(levelname)s] %(message)s'
         logging.basicConfig(level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -52,6 +53,7 @@ class EPSSCrawler:
         actual_retries = 0
         while date_from < date_to:
             url = endpoint_epss.format(str(date_from))
+            is_exception_or_too_many_request = False
             logging.info(f'Request for {date_from}')
             try:
                 response = requests.get(url, timeout=self.request_timeout)
@@ -61,21 +63,27 @@ class EPSSCrawler:
                     logging.info(f'Data saved for {date_from}')
                     date_from += delta
                 else:
-                    logging.error(f'Cannot obtain data for {date_from}, status code={response.status_code}')
-                    if response.status_code == 429 or response.status_code == 503:
-                        logging.info(f'Going to sleep for {self.retry_interval} seconds due to too many requests')
-                        time.sleep(self.retry_interval)
-                        actual_retries += 1
-                        if actual_retries == self.retries_for_request:
-                            actual_retries = 0
-                            date_from += delta
-                    else:
-                        date_from += delta
+                    logging.error(f'Request failed for {date_from}, status code={response.status_code}')
+                    is_exception_or_too_many_request = True
+                    actual_retries += 1
             except Exception as e:
                 logging.exception(e)
+                is_exception_or_too_many_request = True
+                actual_retries += 1
+            if actual_retries == self.retries_for_request:
+                logging.error(f'Maximum number of retries reached for date={date_from}, this request is skipped')
+                with open(os.path.join(self.storage_path, self.MISSING_DATES), 'a') as f:
+                    f.write(str(date_from) + '\n')
+                logging.info(f'Missing date={date_from} saved into {self.MISSING_DATES}')
+                actual_retries = 0
                 date_from += delta
-            logging.info(f'Going to sleep for {self.interval_between_requests} seconds before the next request')
-            time.sleep(self.interval_between_requests)
+            if is_exception_or_too_many_request:
+                logging.warning(
+                    f'Going to sleep for {self.retry_interval} seconds due to too many requests or an exception')
+                time.sleep(self.retry_interval)
+            else:
+                logging.info(f'Going to sleep for {self.interval_between_requests} seconds before the next request')
+                time.sleep(self.interval_between_requests)
             logging.info('Crawler woke up')
 
     def retrieve_last_local_date(self):

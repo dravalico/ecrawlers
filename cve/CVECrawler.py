@@ -97,7 +97,7 @@ class CVECrawler:
             if actual_retries == self.retries_for_request:
                 logging.error(f'Maximum number of retries reached for index={index}, this request is skipped')
                 with open(os.path.join(self.storage_path, self.MISSING_INDEXES), 'a') as f:
-                    f.write(str(index))
+                    f.write(str(index) + '\n')
                 logging.info(f'Missing index={index} saved into {self.MISSING_INDEXES}')
                 actual_retries = 0
                 index += entries_for_request
