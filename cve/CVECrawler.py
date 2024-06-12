@@ -10,10 +10,10 @@ import argparse
 class CVECrawler:
     def __init__(self,
                  storage_path='/usr/src/data',
-                 request_timeout=25,
+                 request_timeout=60,
                  interval_between_requests=6,  # Suggested by NIST
                  update_interval=7200,  # Suggested by NIST
-                 retry_interval=300,
+                 retry_interval=600,
                  retries_for_request=9,
                  mode='data'):
         self.storage_path = storage_path
@@ -32,6 +32,7 @@ class CVECrawler:
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cvehistory/2.0'
         self.INDEX_FILENAME = '.index.txt'
         self.LAST_UPDATE_FILENAME = '.last_timestamp.txt'
+        self.MISSING_INDEXES = 'missing_indexes.txt'
         log_format = f'[%(asctime)s] [%(levelname)s] %(message)s'
         logging.basicConfig(level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -41,6 +42,12 @@ class CVECrawler:
         logging.info('Initialisation of the data population')
         self.init_data_population()
         logging.info('Initialisation completed')
+
+        now = str(datetime.datetime.now().isoformat())
+        if not os.path.isfile(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME)):
+            logging.info('No last timestamp detected, creating a new one with current time')
+            with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'w') as file:
+                file.write(now)
         while True:
             logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
             time.sleep(self.update_interval)
@@ -80,21 +87,22 @@ class CVECrawler:
                     index += entries_for_request
                     actual_retries = 0
                 else:
-                    logging.error(f'Cannot obtain data for index={index}, status code={response.status_code}')
-                    if response.status_code == 429 or response.status_code == 503:
-                        is_exception_or_too_many_request = True
-                        actual_retries += 1
-                        if actual_retries == self.retries_for_request:
-                            actual_retries = 0
-                            index += entries_for_request
-                    else:
-                        index += entries_for_request
+                    logging.error(f'Request failed for index={index}, status code={response.status_code}')
+                    is_exception_or_too_many_request = True
+                    actual_retries += 1
             except Exception as e:
                 logging.exception(e)
                 is_exception_or_too_many_request = True
+                actual_retries += 1
+            if actual_retries == self.retries_for_request:
+                logging.error(f'Maximum number of retries reached for index={index}, this request is skipped')
+                with open(os.path.join(self.storage_path, self.MISSING_INDEXES), 'a') as f:
+                    f.write(str(index))
+                logging.info(f'Missing index={index} saved into {self.MISSING_INDEXES}')
+                actual_retries = 0
                 index += entries_for_request
             if is_exception_or_too_many_request:
-                logging.info(
+                logging.warning(
                     f'Going to sleep for {self.retry_interval} seconds due to too many requests or an exception')
                 time.sleep(self.retry_interval)
             else:
@@ -168,6 +176,7 @@ class CVECrawler:
             logging.info('No last timestamp detected, creating a new one with current time')
             with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'w') as file:
                 file.write(now)
+            return
         logging.info(f'Request for update local data from {timestamp}')
         if self.mode == 'data':
             query = f'?lastModStartDate={timestamp}&lastModEndDate={now}'
