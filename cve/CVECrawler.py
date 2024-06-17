@@ -152,17 +152,13 @@ class CVECrawler:
             split_cve = cve.split('-')
             year = split_cve[1]
             cve_padded = str('{:06d}'.format(int(split_cve[2])))
-            year_path = os.path.join(self.storage_path, year)
-            os.makedirs(year_path, exist_ok=True)
-            two_digits_path = os.path.join(year_path, cve_padded[:2])
-            os.makedirs(two_digits_path, exist_ok=True)
-            one_digit_path = os.path.join(two_digits_path, cve_padded[2:4])
-            os.makedirs(one_digit_path, exist_ok=True)
+            full_path = os.path.join(self.storage_path, year, cve_padded[:2], cve_padded[2:4])
+            os.makedirs(full_path, exist_ok=True)
             if self.mode == 'data':
-                with open(os.path.join(one_digit_path, f'CVE-{year}-{cve_padded}.json'), 'w') as file:
+                with open(os.path.join(full_path, f'CVE-{year}-{cve_padded}.json'), 'w') as file:
                     file.write(json.dumps(json_data))
             else:
-                with open(os.path.join(one_digit_path, f'CVE-{year}-{cve_padded}.jsonl'), 'a') as file:
+                with open(os.path.join(full_path, f'CVE-{year}-{cve_padded}.jsonl'), 'a') as file:
                     file.write(json.dumps(json_data) + '\n')
         except:
             raise RuntimeError('Cannot save data')

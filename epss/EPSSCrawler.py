@@ -109,11 +109,9 @@ class EPSSCrawler:
             date = date_str.split('-')
             year = date[0]
             month = date[1]
-            year_path = os.path.join(self.storage_path, year)
-            os.makedirs(year_path, exist_ok=True)
-            month_path = os.path.join(year_path, month)
-            os.makedirs(month_path, exist_ok=True)
-            with open(os.path.join(month_path, f'{date_str}.csv.gz'), 'wb') as file:
+            full_path = os.path.join(self.storage_path, year, month)
+            os.makedirs(full_path, exist_ok=True)
+            with open(os.path.join(full_path, f'{date_str}.csv.gz'), 'wb') as file:
                 file.write(content)
         except:
             raise RuntimeError('Cannot save data')
