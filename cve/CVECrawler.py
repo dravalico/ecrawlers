@@ -15,7 +15,7 @@ class CVECrawler:
                  update_interval=7200,  # Suggested by NIST
                  retry_interval=600,
                  retries_for_request=9,
-                 mode='data'):
+                 mode='info'):
         self.storage_path = storage_path
         self.request_timeout = request_timeout
         self.interval_between_requests = interval_between_requests
@@ -23,10 +23,10 @@ class CVECrawler:
         self.retry_interval = retry_interval
         self.retries_for_request = retries_for_request
         self.mode = mode
-        if self.mode not in ['data', 'info']:
+        if self.mode not in ['info', 'changes']:
             logging.error('Invalid mode')
             exit(1)
-        if self.mode == 'data':
+        if self.mode == 'info':
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
         else:
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cvehistory/2.0'
@@ -61,7 +61,7 @@ class CVECrawler:
                 index = int(file.read())
         except:
             index = 0
-        if self.mode == 'data':
+        if self.mode == 'info':
             entries_for_request = 2000
         else:
             entries_for_request = 5000
@@ -111,14 +111,14 @@ class CVECrawler:
             logging.info('Crawler woke up')
 
     def add_references_to_json_and_save(self, response_json):
-        if self.mode == 'data':
+        if self.mode == 'info':
             json_list = response_json['vulnerabilities']
             logging.info('Adding raw references to items')
         else:
             json_list = response_json['cveChanges']
         for e in json_list:
             complete_json = e
-            if self.mode == 'data':
+            if self.mode == 'info':
                 complete_json = self.fetch_and_add_references_to_json(e)
             self.save_data(complete_json)
 
@@ -145,7 +145,7 @@ class CVECrawler:
 
     def save_data(self, json_data):
         try:
-            if self.mode == 'data':
+            if self.mode == 'info':
                 cve = json_data['cve']['id']
             else:
                 cve = json_data['change']['cveId']
@@ -154,7 +154,7 @@ class CVECrawler:
             cve_padded = str('{:06d}'.format(int(split_cve[2])))
             full_path = os.path.join(self.storage_path, year, cve_padded[:2], cve_padded[2:4])
             os.makedirs(full_path, exist_ok=True)
-            if self.mode == 'data':
+            if self.mode == 'info':
                 with open(os.path.join(full_path, f'CVE-{year}-{cve_padded}.json'), 'w') as file:
                     file.write(json.dumps(json_data))
             else:
@@ -174,7 +174,7 @@ class CVECrawler:
                 file.write(now)
             return
         logging.info(f'Request for update local data from {timestamp}')
-        if self.mode == 'data':
+        if self.mode == 'info':
             query = f'?lastModStartDate={timestamp}&lastModEndDate={now}'
         else:
             query = f'?changeStartDate={timestamp}&changeEndDate={now}'
@@ -183,12 +183,12 @@ class CVECrawler:
             response = requests.get(url, timeout=self.request_timeout)
             if response.status_code == 200:
                 response_json = response.json()
-                if self.mode == 'data':
+                if self.mode == 'info':
                     key = 'vulnerabilities'
                 else:
                     key = 'cveChanges'
                 if response_json[key]:
-                    if self.mode == 'data':
+                    if self.mode == 'info':
                         last_timestamp = response_json[key][-1]['cve']['lastModified']
                     else:
                         last_timestamp = response_json[key][-1]['change']['created']
@@ -208,8 +208,8 @@ class CVECrawler:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('--mode', help='What to fetch of the CVEs: data or info')
+    parser = argparse.ArgumentParser(description='CVE crawler')
+    parser.add_argument('--mode', help='What to fetch of the CVEs: info or changes')
 
     args = parser.parse_args()
     CVECrawler(mode=args.mode).run()
