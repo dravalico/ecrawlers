@@ -28,7 +28,7 @@ class CVECrawler:
             exit(1)
         if self.mode == 'info':
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
-        else:
+        if self.mode == 'changes':
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cvehistory/2.0'
         self.INDEX_FILENAME = '.index.txt'
         self.LAST_UPDATE_FILENAME = '.last_timestamp.txt'
@@ -82,7 +82,7 @@ class CVECrawler:
                     if response_json['startIndex'] >= response_json['totalResults']:
                         logging.info('Data up to date')
                         break
-                    self.add_references_to_json_and_save(response_json)
+                    self.save_wrapper(response_json)
                     logging.info(f'Data saved for {entries_for_request} entries from index={index}')
                     index += entries_for_request
                     actual_retries = 0
@@ -110,7 +110,7 @@ class CVECrawler:
                 time.sleep(self.interval_between_requests)
             logging.info('Crawler woke up')
 
-    def add_references_to_json_and_save(self, response_json):
+    def save_wrapper(self, response_json):
         if self.mode == 'info':
             json_list = response_json['vulnerabilities']
             logging.info('Adding raw references to items')
@@ -119,11 +119,11 @@ class CVECrawler:
         for e in json_list:
             complete_json = e
             if self.mode == 'info':
-                complete_json = self.fetch_and_add_references_to_json(e)
+                complete_json = self.fetch_and_add_references(e)
             self.save_data(complete_json)
 
     @staticmethod
-    def fetch_and_add_references_to_json(json_data):
+    def fetch_and_add_references(json_data):
         references = []
         try:
             for ref in json_data['cve']['references']:
@@ -145,10 +145,7 @@ class CVECrawler:
 
     def save_data(self, json_data):
         try:
-            if self.mode == 'info':
-                cve = json_data['cve']['id']
-            else:
-                cve = json_data['change']['cveId']
+            cve = json_data['cve']['id'] if self.mode == 'info' else json_data['change']['cveId']
             split_cve = cve.split('-')
             year = split_cve[1]
             cve_padded = str('{:06d}'.format(int(split_cve[2])))
@@ -193,7 +190,7 @@ class CVECrawler:
                     else:
                         last_timestamp = response_json[key][-1]['change']['created']
                     logging.info(f'Data obtained from {timestamp} to {last_timestamp}')
-                    self.add_references_to_json_and_save(response_json)
+                    self.save_wrapper(response_json)
                     logging.info(f'Data saved from {timestamp} to {last_timestamp}')
                 else:
                     logging.info(f'Data up to date')
