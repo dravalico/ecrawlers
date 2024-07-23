@@ -1,6 +1,6 @@
 FROM --platform=linux/amd64 python:3.9-slim-buster
 
-ENV MODE=data
+ENV MODE=info
 
 COPY requirements.txt requirements.txt
 
