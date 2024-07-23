@@ -1,12 +1,8 @@
 FROM --platform=linux/amd64 python:3.9-slim-buster
 
-ENV MODE=info
-
 COPY requirements.txt requirements.txt
 
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-CMD ["sh", "-c", "python CVECrawler.py --mode=$MODE"]

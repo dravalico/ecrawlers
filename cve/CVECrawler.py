@@ -24,7 +24,7 @@ class CVECrawler:
         self.retries_for_request = retries_for_request
         self.mode = mode
         if self.mode not in ['info', 'changes']:
-            logging.error('Invalid mode')
+            logging.error(f'{self.mode} is not a valid mode')
             exit(1)
         if self.mode == 'info':
             self.ENDPOINT_NIST = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
