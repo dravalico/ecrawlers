@@ -39,7 +39,7 @@ docker build --tag <tag> .
 Subsequently, you can run the application via:
 
 ```
-docker run --restart unless-stopped -v <local output directory>:/usr/src/data <tag>
+docker run --restart unless-stopped -v <local output directory>:/usr/src/data <tag> python CVECrawler.py --mode <mode>
 ```
 
 ### Output folder
