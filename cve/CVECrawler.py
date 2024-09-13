@@ -58,7 +58,7 @@ class CVECrawler:
     def init_data_population(self):
         try:
             with open(os.path.join(self.storage_path, self.INDEX_FILENAME), 'r') as file:
-                index = int(file.read())
+                index = int(file.read().strip())
         except:
             index = 0
         if self.mode == 'info':
@@ -164,7 +164,7 @@ class CVECrawler:
         now = str(datetime.datetime.now().isoformat())
         try:
             with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'r') as file:
-                timestamp = file.read()
+                timestamp = file.read().strip()
         except FileNotFoundError:
             logging.info('No last timestamp detected, creating a new one with current time')
             with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'w') as file:
