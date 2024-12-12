@@ -235,4 +235,4 @@ if __name__ == '__main__':
     parser.add_argument('--mode', help='What to fetch of the CVEs: info or changes')
 
     args = parser.parse_args()
-    CVECrawler(mode='info').run()
+    CVECrawler(mode=args.mode).run()
