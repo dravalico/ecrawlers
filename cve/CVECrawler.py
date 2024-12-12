@@ -122,18 +122,40 @@ class CVECrawler:
                 complete_json = self.fetch_and_add_references(e)
             self.save_data(complete_json)
 
-    @staticmethod
-    def fetch_and_add_references(json_data):
+    def fetch_and_add_references(self, json_data):
         references = []
         try:
             for ref in json_data['cve']['references']:
                 references.append(ref['url'])
             read_references = []
+            ext_ref_id = 0
             for ref_url in references:
                 try:
-                    response = requests.get(ref_url, timeout=3)
+                    response = requests.get(ref_url, timeout=3, stream=True)
                     if response.status_code == 200:
-                        read_references.append((ref_url, response.text))
+                        content_length = response.headers.get('Content-Length')
+                        content_type = response.headers.get('Content-Type', '')
+                        is_textual = any(
+                            kw in content_type for kw in ['text', 'json', 'xml', 'javascript', 'x-www-form-urlencoded'])
+
+                        path = self.get_cve_path_and_filename(json_data)
+                        if is_textual:
+                            if content_length and int(content_length) > 5 * 1024 * 1024:
+                                full_path = path + f'-{ext_ref_id}.txt'
+                                with open(full_path, 'w', encoding=response.encoding or 'utf-8') as f:
+                                    for chunk in response.iter_content(chunk_size=8192, decode_unicode=True):
+                                        f.write(chunk)
+                                read_references.append((ref_url, full_path))
+                                ext_ref_id = ext_ref_id + 1
+                            else:
+                                read_references.append((ref_url, response.text))
+                        else:
+                            full_path = path + f'-{ext_ref_id}'
+                            with open(full_path, 'wb') as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                            read_references.append((ref_url, full_path))
+                            ext_ref_id = ext_ref_id + 1
                     else:
                         read_references.append((ref_url, response.status_code))
                 except:
@@ -143,19 +165,23 @@ class CVECrawler:
             pass
         return json_data
 
+    def get_cve_path_and_filename(self, json_data):
+        cve = json_data['cve']['id'] if self.mode == 'info' else json_data['change']['cveId']
+        split_cve = cve.split('-')
+        year = split_cve[1]
+        cve_padded = str('{:06d}'.format(int(split_cve[2])))
+        full_path = os.path.join(self.storage_path, year, cve_padded[:2], cve_padded[2:4])
+        os.makedirs(full_path, exist_ok=True)
+        return os.path.join(full_path, f'CVE-{year}-{cve_padded}')
+
     def save_data(self, json_data):
         try:
-            cve = json_data['cve']['id'] if self.mode == 'info' else json_data['change']['cveId']
-            split_cve = cve.split('-')
-            year = split_cve[1]
-            cve_padded = str('{:06d}'.format(int(split_cve[2])))
-            full_path = os.path.join(self.storage_path, year, cve_padded[:2], cve_padded[2:4])
-            os.makedirs(full_path, exist_ok=True)
+            path = self.get_cve_path_and_filename(json_data)
             if self.mode == 'info':
-                with open(os.path.join(full_path, f'CVE-{year}-{cve_padded}.json'), 'w') as file:
+                with open(path + '.json', 'w') as file:
                     file.write(json.dumps(json_data))
             else:
-                with open(os.path.join(full_path, f'CVE-{year}-{cve_padded}.jsonl'), 'a') as file:
+                with open(path + '.jsonl', 'a') as file:
                     file.write(json.dumps(json_data) + '\n')
         except:
             raise RuntimeError('Cannot save data')
@@ -209,4 +235,4 @@ if __name__ == '__main__':
     parser.add_argument('--mode', help='What to fetch of the CVEs: info or changes')
 
     args = parser.parse_args()
-    CVECrawler(mode=args.mode).run()
+    CVECrawler(mode='info').run()
