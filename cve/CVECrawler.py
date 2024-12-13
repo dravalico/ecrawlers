@@ -43,11 +43,8 @@ class CVECrawler:
         self.init_data_population()
         logging.info('Initialisation completed')
 
-        now = str(datetime.datetime.now().isoformat())
-        if not os.path.isfile(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME)):
-            logging.info('No last timestamp detected, creating a new one with current time')
-            with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'w') as file:
-                file.write(now)
+        with open(os.path.join(self.storage_path, self.LAST_UPDATE_FILENAME), 'w') as file:
+            file.write(str(datetime.datetime.now().isoformat()))
         while True:
             logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
             time.sleep(self.update_interval)
