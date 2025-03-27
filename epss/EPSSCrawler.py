@@ -27,19 +27,19 @@ class EPSSCrawler:
         logging.info('Crawler up')
         os.makedirs(self.storage_path, exist_ok=True)
         logging.info('Initialisation of the data population')
-        self.download_or_maintain_data()
+        self.download_data()
         logging.info('Initialisation completed')
         logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
         time.sleep(self.update_interval)
         logging.info('Crawler woke up from stand-by mode')
         while True:
             logging.info(f'Maintaining...')
-            self.download_or_maintain_data()
+            self.download_data()
             logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
             time.sleep(self.update_interval)
             logging.info('Crawler woke up from stand-by mode')
 
-    def download_or_maintain_data(self):
+    def download_data(self):
         endpoint_epss = 'https://epss.cyentia.com/epss_scores-{}.csv.gz'
         delta_day = datetime.timedelta(days=1)
         local_date = self.retrieve_last_local_date()
