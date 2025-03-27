@@ -34,20 +34,16 @@ class EPSSCrawler:
         logging.info('Crawler woke up from stand-by mode')
         while True:
             logging.info(f'Maintaining...')
-            self.download_or_maintain_data(maintain=True)
+            self.download_or_maintain_data()
             logging.info(f'Going to sleep for {self.update_interval} seconds due to normal stand-by mode')
             time.sleep(self.update_interval)
             logging.info('Crawler woke up from stand-by mode')
 
-    def download_or_maintain_data(self, maintain=False):
+    def download_or_maintain_data(self):
         endpoint_epss = 'https://epss.cyentia.com/epss_scores-{}.csv.gz'
-        delta = datetime.timedelta(days=1)
-        if maintain:
-            date_from = datetime.date.today() - delta
-        else:
-            local_date = self.retrieve_last_local_date()
-            date_from = datetime.date(2021, 4, 14) if local_date is None else local_date.date()
-            date_from += delta
+        delta_day = datetime.timedelta(days=1)
+        local_date = self.retrieve_last_local_date()
+        date_from = datetime.date(2021, 4, 14) if local_date is None else local_date.date() + delta_day
         logging.info(f'Retrieving EPSS from {date_from}')
         date_to = datetime.date.today()
         actual_retries = 0
@@ -61,7 +57,7 @@ class EPSSCrawler:
                     logging.info(f'Data obtained for {date_from}')
                     self.save_compressed_data(str(date_from), response.content)
                     logging.info(f'Data saved for {date_from}')
-                    date_from += delta
+                    date_from += delta_day
                 else:
                     logging.error(f'Request failed for {date_from}, status code={response.status_code}')
                     is_exception_or_too_many_request = True
@@ -76,7 +72,7 @@ class EPSSCrawler:
                     f.write(str(date_from) + '\n')
                 logging.info(f'Missing date={date_from} saved into {self.MISSING_DATES}')
                 actual_retries = 0
-                date_from += delta
+                date_from += delta_day
             if is_exception_or_too_many_request:
                 logging.warning(
                     f'Going to sleep for {self.retry_interval} seconds due to too many requests or an exception')
@@ -85,6 +81,7 @@ class EPSSCrawler:
                 logging.info(f'Going to sleep for {self.interval_between_requests} seconds before the next request')
                 time.sleep(self.interval_between_requests)
             logging.info('Crawler woke up')
+        logging.info('Already up to date')
 
     def retrieve_last_local_date(self):
         highest_date = None
